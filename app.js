@@ -8,6 +8,8 @@ import {
   Modal,
   Pressable,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -45,7 +47,11 @@ const App = () => {
           </View>
 
           {/* Chat Box - Alt kısımda sabit */}
-          <View style={styles.chatBoxContainer}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <View style={styles.chatBoxContainer}>
             <View style={styles.inputRow}>
               {/* "+" Butonu */}
               <TouchableOpacity
@@ -83,6 +89,7 @@ const App = () => {
               </TouchableOpacity>
             </View>
           </View>
+          </KeyboardAvoidingView>
 
           {/* Menu Modal */}
           <Modal
