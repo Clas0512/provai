@@ -27,6 +27,8 @@ const App = () => {
   const [messages, setMessages] = useState([]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [providerMenuVisible, setProviderMenuVisible] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const flatListRef = useRef(null);
 
   const menuOptions = [
@@ -34,6 +36,13 @@ const App = () => {
     { label: 'Dosya Ekle', value: 'file' },
     { label: 'Konum Paylaş', value: 'location' },
     { label: 'Ses Kaydı', value: 'audio' },
+  ];
+
+  const aiProviders = [
+    { id: '1', name: 'OpenAI GPT-4' },
+    { id: '2', name: 'Claude 3' },
+    { id: '3', name: 'Gemini Pro' },
+    { id: '4', name: 'Llama 2' },
   ];
 
   const handleSend = () => {
@@ -62,6 +71,12 @@ const App = () => {
     setSelectedOption(option);
     setMenuVisible(false);
     console.log('Seçilen seçenek:', option);
+  };
+
+  const handleProviderSelect = (provider) => {
+    setSelectedProvider(provider);
+    setProviderMenuVisible(false);
+    console.log('Seçilen provider:', provider);
   };
 
   return (
@@ -110,6 +125,23 @@ const App = () => {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
             <View style={styles.chatBoxContainer}>
+              {/* AI Provider Seçici */}
+              {selectedProvider ? (
+                <TouchableOpacity
+                  onPress={() => setProviderMenuVisible(true)}
+                  style={styles.selectedProviderContainer}
+                >
+                  <Text style={styles.selectedProviderText}>{selectedProvider.name}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => setProviderMenuVisible(true)}
+                  style={styles.providerButton}
+                >
+                  <Text style={styles.providerButtonText}>AI Provider Seç</Text>
+                </TouchableOpacity>
+              )}
+              
             <View style={styles.inputRow}>
               {/* "+" Butonu */}
               <TouchableOpacity
@@ -168,6 +200,35 @@ const App = () => {
                     style={styles.menuItem}
                   >
                     <Text style={styles.menuItemText}>{option.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Pressable>
+          </Modal>
+
+          {/* AI Provider Modal */}
+          <Modal
+            visible={providerMenuVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setProviderMenuVisible(false)}
+          >
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={() => setProviderMenuVisible(false)}
+            >
+              <View style={styles.providerMenuContainer}>
+                <Text style={styles.providerMenuTitle}>AI Provider Seç</Text>
+                {aiProviders.map((provider) => (
+                  <Pressable
+                    key={provider.id}
+                    onPress={() => handleProviderSelect(provider)}
+                    style={[
+                      styles.providerMenuItem,
+                      selectedProvider?.id === provider.id && styles.providerMenuItemSelected
+                    ]}
+                  >
+                    <Text style={styles.providerMenuItemText}>{provider.name}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -240,6 +301,61 @@ const styles = StyleSheet.create({
     borderTopColor: '#2a2a2a',
     borderTopLeftRadius: 48, // Üst sol köşe - daha yumuşak
     borderTopRightRadius: 48, // Üst sağ köşe - daha yumuşak
+  },
+  providerButton: {
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    marginBottom: 8,
+  },
+  providerButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  selectedProviderContainer: {
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    marginBottom: 8,
+  },
+  selectedProviderText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  providerMenuContainer: {
+    backgroundColor: '#2a2a2a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingVertical: 8,
+    maxHeight: '50%',
+  },
+  providerMenuTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3a3a3a',
+  },
+  providerMenuItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#3a3a3a',
+  },
+  providerMenuItemSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  providerMenuItemText: {
+    color: '#ffffff',
+    fontSize: 16,
   },
   inputRow: {
     flexDirection: 'row',
