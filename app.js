@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,6 +30,8 @@ const App = () => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [providerMenuVisible, setProviderMenuVisible] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
+  const [systemPromptVisible, setSystemPromptVisible] = useState(false);
+  const [systemPrompt, setSystemPrompt] = useState('Sen yardımcı bir AI asistanısın.');
   const flatListRef = useRef(null);
 
   const menuOptions = [
@@ -79,9 +82,35 @@ const App = () => {
     console.log('Seçilen provider:', provider);
   };
 
+  const handleSystemPromptSave = () => {
+    setSystemPromptVisible(false);
+    console.log('System prompt kaydedildi:', systemPrompt);
+  };
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          {/* Üst Butonlar */}
+          <View style={styles.topButtonsContainer}>
+            {/* Sol Üst - System Prompt Butonu */}
+            <TouchableOpacity
+              onPress={() => setSystemPromptVisible(true)}
+              style={styles.topButton}
+            >
+              <Text style={styles.topButtonText}>⚙️</Text>
+            </TouchableOpacity>
+
+            {/* Sağ Üst - AI Provider Butonu */}
+            <TouchableOpacity
+              onPress={() => setProviderMenuVisible(true)}
+              style={styles.topButton}
+            >
+              <Text style={styles.topButtonText}>
+                {selectedProvider ? selectedProvider.name : 'AI Provider'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Mesaj Geçmişi */}
           <FlatList
             ref={flatListRef}
@@ -125,23 +154,6 @@ const App = () => {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
             <View style={styles.chatBoxContainer}>
-              {/* AI Provider Seçici */}
-              {selectedProvider ? (
-                <TouchableOpacity
-                  onPress={() => setProviderMenuVisible(true)}
-                  style={styles.selectedProviderContainer}
-                >
-                  <Text style={styles.selectedProviderText}>{selectedProvider.name}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setProviderMenuVisible(true)}
-                  style={styles.providerButton}
-                >
-                  <Text style={styles.providerButtonText}>AI Provider Seç</Text>
-                </TouchableOpacity>
-              )}
-              
             <View style={styles.inputRow}>
               {/* "+" Butonu */}
               <TouchableOpacity
@@ -214,25 +226,85 @@ const App = () => {
             onRequestClose={() => setProviderMenuVisible(false)}
           >
             <Pressable
-              style={styles.modalOverlay}
+              style={styles.systemPromptModalOverlay}
               onPress={() => setProviderMenuVisible(false)}
             >
-              <View style={styles.providerMenuContainer}>
-                <Text style={styles.providerMenuTitle}>AI Provider Seç</Text>
-                {aiProviders.map((provider) => (
-                  <Pressable
-                    key={provider.id}
-                    onPress={() => handleProviderSelect(provider)}
-                    style={[
-                      styles.providerMenuItem,
-                      selectedProvider?.id === provider.id && styles.providerMenuItemSelected
-                    ]}
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                <View style={styles.providerMenuContainer}>
+                  <Text style={styles.providerMenuTitle}>AI Provider Seç</Text>
+                  <ScrollView 
+                    style={styles.providerMenuScrollView}
+                    contentContainerStyle={styles.providerMenuScrollContent}
                   >
-                    <Text style={styles.providerMenuItemText}>{provider.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
+                    {aiProviders.map((provider) => (
+                      <Pressable
+                        key={provider.id}
+                        onPress={() => handleProviderSelect(provider)}
+                        style={[
+                          styles.providerMenuItem,
+                          selectedProvider?.id === provider.id && styles.providerMenuItemSelected
+                        ]}
+                      >
+                        <Text style={styles.providerMenuItemText}>{provider.name}</Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              </Pressable>
             </Pressable>
+          </Modal>
+
+          {/* System Prompt Modal */}
+          <Modal
+            visible={systemPromptVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setSystemPromptVisible(false)}
+          >
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.systemPromptModalOverlay}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+              <Pressable
+                style={styles.systemPromptModalOverlay}
+                onPress={() => setSystemPromptVisible(false)}
+              >
+                <Pressable onPress={(e) => e.stopPropagation()}>
+                  <View style={styles.systemPromptContainer}>
+                    <Text style={styles.systemPromptTitle}>System Prompt</Text>
+                    <ScrollView 
+                      style={styles.systemPromptScrollView}
+                      contentContainerStyle={styles.systemPromptScrollContent}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <TextInput
+                        style={styles.systemPromptInput}
+                        value={systemPrompt}
+                        onChangeText={setSystemPrompt}
+                        multiline
+                        placeholder="System prompt'unuzu buraya yazın..."
+                        placeholderTextColor="#666666"
+                      />
+                    </ScrollView>
+                    <View style={styles.systemPromptButtons}>
+                      <TouchableOpacity
+                        onPress={() => setSystemPromptVisible(false)}
+                        style={[styles.systemPromptButton, styles.systemPromptButtonCancel]}
+                      >
+                        <Text style={styles.systemPromptButtonText}>İptal</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSystemPromptSave}
+                        style={[styles.systemPromptButton, styles.systemPromptButtonSave]}
+                      >
+                        <Text style={styles.systemPromptButtonText}>Kaydet</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </Pressable>
+              </Pressable>
+            </KeyboardAvoidingView>
           </Modal>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -243,6 +315,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a1a1a', // Koyu gri arka plan
+  },
+  topButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  topButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+  },
+  topButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    opacity: 0.7,
   },
   messagesList: {
     paddingHorizontal: 16,
@@ -302,47 +392,99 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 48, // Üst sol köşe - daha yumuşak
     borderTopRightRadius: 48, // Üst sağ köşe - daha yumuşak
   },
-  providerButton: {
+  systemPromptContainer: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    marginHorizontal: 20,
+    marginVertical: 20,
+    maxHeight: '85%',
+    justifyContent: 'space-between',
+    width: '90%',
     alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-    marginBottom: 8,
+    overflow: 'hidden',
   },
-  providerButtonText: {
+  systemPromptScrollView: {
+    maxHeight: 300,
+    marginBottom: 16,
+  },
+  systemPromptScrollContent: {
+    flexGrow: 1,
+  },
+  systemPromptTitle: {
     color: '#ffffff',
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
   },
-  selectedProviderContainer: {
-    alignSelf: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-    marginBottom: 8,
-  },
-  selectedProviderText: {
+  systemPromptInput: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 16,
+    minHeight: 150,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  systemPromptButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+    marginBottom: 0,
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  systemPromptButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    minWidth: 70,
+    alignItems: 'center',
+    flex: 1,
+    maxWidth: '48%',
+  },
+  systemPromptButtonCancel: {
+    backgroundColor: '#3a3a3a',
+  },
+  systemPromptButtonSave: {
+    backgroundColor: '#2a2a2a',
+    borderWidth: 1,
+    borderColor: '#ffffff',
+  },
+  systemPromptButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   providerMenuContainer: {
     backgroundColor: '#2a2a2a',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingVertical: 8,
-    maxHeight: '50%',
+    borderRadius: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    marginHorizontal: 20,
+    marginVertical: 20,
+    maxHeight: '85%',
+    width: '90%',
+    alignSelf: 'center',
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  providerMenuScrollView: {
+    maxHeight: 300,
+  },
+  providerMenuScrollContent: {
+    flexGrow: 1,
   },
   providerMenuTitle: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#3a3a3a',
+    marginBottom: 16,
   },
   providerMenuItem: {
     paddingVertical: 16,
@@ -411,6 +553,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  systemPromptModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   menuContainer: {
     backgroundColor: '#2a2a2a',
