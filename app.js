@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,13 +10,24 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  FlatList,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+// Mesaj tipi tanımı
+const createMessage = (text, sender = 'user') => ({
+  id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+  text,
+  sender, // 'user' veya 'assistant'
+  timestamp: new Date(),
+});
+
 const App = () => {
   const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
+  const flatListRef = useRef(null);
 
   const menuOptions = [
     { label: 'Resim Ekle', value: 'image' },
@@ -27,10 +38,25 @@ const App = () => {
 
   const handleSend = () => {
     if (message.trim()) {
-      console.log('Mesaj gönderildi:', message);
+      const newMessage = createMessage(message.trim(), 'user');
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
       setMessage(''); // Input'u temizle
+      
+      // Yeni mesaj gönderildiğinde en alta scroll yap
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   };
+
+  // Mesajlar değiştiğinde otomatik scroll
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
 
   const handleMenuSelect = (option) => {
     setSelectedOption(option);
@@ -40,11 +66,43 @@ const App = () => {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-          {/* Ana içerik alanı */}
-          <View style={styles.content}>
-            {/* Buraya içerik ekleyebilirsiniz */}
-          </View>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          {/* Mesaj Geçmişi */}
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.messageContainer,
+                  item.sender === 'user' ? styles.userMessage : styles.assistantMessage,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.messageBubble,
+                    item.sender === 'user' ? styles.userBubble : styles.assistantBubble,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.messageText,
+                      item.sender === 'user' ? styles.userMessageText : styles.assistantMessageText,
+                    ]}
+                  >
+                    {item.text}
+                  </Text>
+                </View>
+              </View>
+            )}
+            contentContainerStyle={styles.messagesList}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Henüz mesaj yok. İlk mesajınızı yazın!</Text>
+              </View>
+            }
+          />
 
           {/* Chat Box - Alt kısımda sabit */}
           <KeyboardAvoidingView
@@ -125,9 +183,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a', // Koyu gri arka plan
   },
-  content: {
+  messagesList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  messageContainer: {
+    marginVertical: 4,
+    flexDirection: 'row',
+  },
+  userMessage: {
+    justifyContent: 'flex-end',
+  },
+  assistantMessage: {
+    justifyContent: 'flex-start',
+  },
+  messageBubble: {
+    maxWidth: '75%',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 18,
+  },
+  userBubble: {
+    backgroundColor: '#2a2a2a',
+    borderBottomRightRadius: 4,
+  },
+  assistantBubble: {
+    backgroundColor: '#3a3a3a',
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  userMessageText: {
+    color: '#ffffff',
+  },
+  assistantMessageText: {
+    color: '#ffffff',
+  },
+  emptyContainer: {
     flex: 1,
-    // Ana içerik buraya gelecek
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    color: '#666666',
+    fontSize: 16,
+    textAlign: 'center',
   },
   chatBoxContainer: {
     paddingHorizontal: 16,
