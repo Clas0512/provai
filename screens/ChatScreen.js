@@ -338,43 +338,45 @@ const ChatScreen = ({ chatId, onBack }) => {
         style={styles.contentLayer}
       >
         <View style={styles.chatBoxContainer}>
-        <View style={styles.inputRow}>
-          {/* "+" Butonu */}
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            style={styles.addButton}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            {/* Text Input */}
+            <TextInput
+              placeholder="Type your message..."
+              placeholderTextColor="#666666"
+              value={message}
+              onChangeText={setMessage}
+              style={styles.textInput}
+              multiline
+            />
+            
+            {/* Alt Butonlar - Input içinde */}
+            <View style={styles.inputButtonsContainer}>
+              {/* Select Agents Butonu (eski "+" butonu) */}
+              <TouchableOpacity
+                onPress={() => setMenuVisible(true)}
+                style={styles.selectAgentsButton}
+              >
+                <View style={styles.selectAgentsButtonInner}>
+                  <View style={styles.selectAgentsShine} />
+                  <Text style={styles.selectAgentsIcon}>🤖</Text>
+                  <Text style={styles.selectAgentsText}>Select agents</Text>
+                </View>
+              </TouchableOpacity>
 
-          {/* Text Input */}
-          <TextInput
-            placeholder="Mesaj yazın..."
-            placeholderTextColor="#666666"
-            value={message}
-            onChangeText={setMessage}
-            style={styles.textInput}
-            multiline
-          />
-
-          {/* Submit Butonu */}
-          <TouchableOpacity
-            onPress={handleSend}
-            disabled={!message.trim()}
-            style={[
-              styles.sendButton,
-              !message.trim() && styles.sendButtonDisabled
-            ]}
-          >
-            <Text style={[
-              styles.sendButtonText,
-              !message.trim() && styles.sendButtonTextDisabled
-            ]}>
-              Gönder
-            </Text>
-          </TouchableOpacity>
+              {/* Gönder Butonu */}
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={!message.trim()}
+                style={[
+                  styles.sendButton,
+                  !message.trim() && styles.sendButtonDisabled
+                ]}
+              >
+                <Text style={styles.sendButtonIcon}>↑</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
       </KeyboardAvoidingView>
 
       {/* Menu Modal */}
@@ -626,62 +628,93 @@ const styles = StyleSheet.create({
   },
   chatBoxContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(26, 26, 26, 0.7)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(42, 42, 42, 0.5)',
-    borderTopLeftRadius: 48, // Üst sol köşe - daha yumuşak
-    borderTopRightRadius: 48, // Üst sağ köşe - daha yumuşak
+    paddingVertical: 12,
+    paddingBottom: 16,
   },
-  inputRow: {
+  inputWrapper: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 672, // max-w-2xl (~672px)
+    alignSelf: 'center',
+  },
+  textInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // bg-white/80 dark mode için
+    borderRadius: 16, // rounded-xl
+    borderWidth: 1,
+    borderColor: 'rgba(63, 63, 70, 0.8)', // dark:border-zinc-800
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 50, // Alt butonlar için alan
+    minHeight: 80,
+    color: '#ffffff', // dark:text-white
+    fontSize: 14,
+    textAlignVertical: 'top',
+  },
+  inputButtonsContainer: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    width: '100%',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-end',
-    gap: 4,
+    padding: 12,
   },
-  addButton: {
+  selectAgentsButton: {
+    position: 'relative',
+    borderRadius: 9999, // rounded-full
+    backgroundColor: '#000000', // bg-black
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    opacity: 0.7, // dark:opacity-70
+  },
+  selectAgentsButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    position: 'relative',
+    zIndex: 1,
+  },
+  selectAgentsShine: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 9999,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'rgba(160, 124, 254, 0.3)',
+  },
+  selectAgentsIcon: {
+    fontSize: 16,
+  },
+  selectAgentsText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '300', // font-light
+    letterSpacing: 0.5, // tracking-wide
+  },
+  sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#a1a1aa', // bg-zinc-400
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    maxHeight: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#ffffff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
-  },
-  sendButton: {
-    minWidth: 60,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2a2a2a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sendButtonDisabled: {
     opacity: 0.5,
   },
-  sendButtonText: {
+  sendButtonIcon: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  sendButtonTextDisabled: {
-    color: '#666666',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
