@@ -15,7 +15,7 @@ import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 
-const HomeScreen = ({ onChatSelect, onCreateChat }) => {
+const HomeScreen = ({ onChatSelect, onCreateChat, onOpenPhotoGallery }) => {
   const [newChatInput, setNewChatInput] = useState('');
   const [chats, setChats] = useState([
     { id: '1', title: 'Yeni Chat', lastMessage: 'Merhaba, nasılsın?', timestamp: new Date() },
@@ -155,6 +155,14 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
       {/* Blur Overlay */}
       <BlurView intensity={20} style={styles.blurOverlay} />
       
+      {/* Photo Gallery Button - Üst Sağda */}
+      <TouchableOpacity
+        style={styles.photoGalleryButton}
+        onPress={onOpenPhotoGallery}
+      >
+        <Text style={styles.photoGalleryButtonText}>📷 Fotoğraflar</Text>
+      </TouchableOpacity>
+      
       {/* Üst Input Alanı - Ekranın Ortasında */}
       <View style={styles.inputContainer}>
         <View style={styles.inputWrapper}>
@@ -262,6 +270,23 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     opacity: 0.3,
+  },
+  photoGalleryButton: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    zIndex: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  photoGalleryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   inputContainer: {
     position: 'absolute',

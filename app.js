@@ -3,10 +3,13 @@ import { AppRegistry } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './screens/HomeScreen';
 import ChatScreen from './screens/ChatScreen';
+import PhotoGalleryScreen from './screens/PhotoGalleryScreen';
+import PhotoDetailScreen from './screens/PhotoDetailScreen';
 
 const App = () => {
-  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' veya 'chat'
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'chat', 'photoGallery', 'photoDetail'
   const [currentChatId, setCurrentChatId] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const handleChatSelect = (chatId) => {
     setCurrentChatId(chatId);
@@ -21,6 +24,21 @@ const App = () => {
   const handleBackToHome = () => {
     setCurrentScreen('home');
     setCurrentChatId(null);
+    setSelectedPhoto(null);
+  };
+
+  const handleOpenPhotoGallery = () => {
+    setCurrentScreen('photoGallery');
+  };
+
+  const handlePhotoSelect = (photo) => {
+    setSelectedPhoto(photo);
+    setCurrentScreen('photoDetail');
+  };
+
+  const handleBackToGallery = () => {
+    setCurrentScreen('photoGallery');
+    setSelectedPhoto(null);
   };
 
   return (
@@ -29,13 +47,24 @@ const App = () => {
         <HomeScreen
           onChatSelect={handleChatSelect}
           onCreateChat={handleCreateChat}
+          onOpenPhotoGallery={handleOpenPhotoGallery}
         />
-      ) : (
+      ) : currentScreen === 'chat' ? (
         <ChatScreen
           chatId={currentChatId}
           onBack={handleBackToHome}
         />
-      )}
+      ) : currentScreen === 'photoGallery' ? (
+        <PhotoGalleryScreen
+          onPhotoSelect={handlePhotoSelect}
+          onBack={handleBackToHome}
+        />
+      ) : currentScreen === 'photoDetail' ? (
+        <PhotoDetailScreen
+          photo={selectedPhoto}
+          onBack={handleBackToGallery}
+        />
+      ) : null}
     </SafeAreaProvider>
   );
 };
