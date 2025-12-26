@@ -20,15 +20,15 @@ const { width, height } = Dimensions.get('window');
 
 const PhotoGalleryScreen = ({ onPhotoSelect, onBack }) => {
   const defaultPhotos = [
-    { id: '1', uri: null, name: 'adem', percentage: 30, color: '#ff6b6b' },
-    { id: '2', uri: null, name: 'mustafa', percentage: 60, color: '#ffd93d' },
-    { id: '3', uri: null, name: 'adem', percentage: 90, color: '#6bcf7f' },
-    { id: '4', uri: null, name: 'adem', percentage: 30, color: '#ff6b6b' },
-    { id: '5', uri: null, name: 'mustafa', percentage: 60, color: '#ffd93d' },
-    { id: '6', uri: null, name: 'adem', percentage: 90, color: '#6bcf7f' },
-    { id: '7', uri: null, name: 'adem', percentage: 30, color: '#ff6b6b' },
-    { id: '8', uri: null, name: 'mustafa', percentage: 60, color: '#ffd93d' },
-    { id: '9', uri: null, name: 'adem', percentage: 90, color: '#6bcf7f' },
+    { id: '1', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
+    { id: '2', uri: null, name: 'mustafa', percentage: 100, color: '#6bcf7f' },
+    { id: '3', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
+    { id: '4', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
+    { id: '5', uri: null, name: 'mustafa', percentage: 100, color: '#6bcf7f' },
+    { id: '6', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
+    { id: '7', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
+    { id: '8', uri: null, name: 'mustafa', percentage: 100, color: '#6bcf7f' },
+    { id: '9', uri: null, name: 'adem', percentage: 100, color: '#6bcf7f' },
   ];
   
   const [photos, setPhotos] = useState(defaultPhotos);
@@ -113,9 +113,27 @@ const PhotoGalleryScreen = ({ onPhotoSelect, onBack }) => {
     }
   };
 
+  // Yüzdeye göre renk belirle
+  const getColorForPercentage = (percentage) => {
+    if (percentage >= 70) return '#6bcf7f'; // Yeşil
+    if (percentage >= 40) return '#ffd93d'; // Sarı
+    return '#ff6b6b'; // Kırmızı
+  };
+
+  // Fotoğraf yüzdesini güncelle
+  const updatePhotoPercentage = async (photoId, newPercentage) => {
+    const updatedPhotos = photos.map(photo =>
+      photo.id === photoId
+        ? { ...photo, percentage: newPercentage, color: getColorForPercentage(newPercentage) }
+        : photo
+    );
+    setPhotos(updatedPhotos);
+    await savePhotos(updatedPhotos);
+  };
+
   const handlePhotoPress = (photo) => {
     if (photo.uri) {
-      onPhotoSelect(photo);
+      onPhotoSelect(photo, updatePhotoPercentage);
     } else {
       pickImage(photo.id);
     }
