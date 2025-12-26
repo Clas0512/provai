@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import Constants from 'expo-constants';
 
 // .env dosyasından API key ve prompt'u al
-const GEMINI_API_KEY = Constants.expoConfig?.extra?.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-const GEMINI_SYSTEM_PROMPT = Constants.expoConfig?.extra?.GEMINI_SYSTEM_PROMPT || process.env.GEMINI_SYSTEM_PROMPT;
+// Expo otomatik olarak .env dosyasını yükler ve process.env ile erişilebilir
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_SYSTEM_PROMPT = process.env.GEMINI_SYSTEM_PROMPT || "Sen bir dayak simülasyon asistanısın. Kullanıcının fotoğrafına yapılan eyleme göre (tokat, tekme, yumruk, vb.) görsel değişiklikler uygula ve yüzde değerini azalt. Her eylem sonrası fotoğraftaki kişinin durumunu betimle.";
 
 // Gemini AI client'ı başlat
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
