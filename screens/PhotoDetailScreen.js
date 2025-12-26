@@ -7,15 +7,20 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
+import { applyActionToPhoto, isGeminiConfigured } from '../services/geminiService';
 
 const { width, height } = Dimensions.get('window');
 
-const PhotoDetailScreen = ({ photo, onBack }) => {
+const PhotoDetailScreen = ({ photo, updatePhotoPercentage, onBack }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentPercentage, setCurrentPercentage] = useState(photo?.percentage || 100);
   const [rights, setRights] = useState(3);
   const [actions, setActions] = useState([
     { id: '1', label: 'Tokat', color: '#ff6b6b', pressed: false },
@@ -54,7 +59,25 @@ const PhotoDetailScreen = ({ photo, onBack }) => {
     ).start();
   }, []);
 
-  const handleActionPress = (actionId, listType) => {
+  const handleActionPress = async (actionId, listType) => {
+    // Gemini yapılandırma kontrolü
+    if (!isGeminiConfigured()) {
+      Alert.alert(
+        'Yapılandırma Hatası',
+        'Gemini API key tanımlanmamış. Lütfen .env dosyasını oluşturun ve GEMINI_API_KEY değerini ekleyin.'
+      );
+      return;
+    }
+
+    // Yüzde kontrolü - Sadece kırmızı butonlar için
+    if (listType === 'main' && currentPercentage <= 0) {
+      Alert.alert(
+        'İşlem Yapılamaz',
+        'Bu fotoğrafın dayanma yüzdesi %0\'a ulaşmış. Artık işlem yapılamaz.'
+      );
+      return;
+    }
+
     const updateList = (list, setList) => {
       return list.map(action =>
         action.id === actionId
@@ -65,6 +88,34 @@ const PhotoDetailScreen = ({ photo, onBack }) => {
 
     if (listType === 'main') {
       setActions(updateList(actions, setActions));
+      
+      // Kırmızı butonlar için Gemini API çağrısı yap
+      const action = actions.find(a => a.id === actionId);
+      if (action && photo.uri) {
+        setIsProcessing(true);
+        try {
+          // Gemini API'ye gönder
+          const result = await applyActionToPhoto(photo.uri, action.label);
+          
+          if (result.success) {
+            // Yüzdeyi %15 azalt
+            const newPercentage = Math.max(0, currentPercentage - 15);
+            setCurrentPercentage(newPercentage);
+            await updatePhotoPercentage(photo.id, newPercentage);
+            
+            // Sonucu bildir
+            Alert.alert(
+              'İşlem Tamamlandı',
+              `${action.label} uygulandı!\n\n${result.description}\n\nKalan dayanma: %${newPercentage}`,
+              [{ text: 'Tamam' }]
+            );
+          }
+        } catch (error) {
+          Alert.alert('Hata', error.message);
+        } finally {
+          setIsProcessing(false);
+        }
+      }
     } else if (listType === 'secondary') {
       setSecondaryActions(updateList(secondaryActions, setSecondaryActions));
     } else if (listType === 'bonus') {
@@ -121,10 +172,15 @@ const PhotoDetailScreen = ({ photo, onBack }) => {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} disabled={isProcessing}>
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Dayakhane</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Dayakhane</Text>
+          {isProcessing && (
+            <ActivityIndicator size="small" color="#fff" style={styles.loadingIndicator} />
+          )}
+        </View>
         <View style={styles.headerPlaceholder} />
       </View>
 
@@ -166,10 +222,16 @@ const PhotoDetailScreen = ({ photo, onBack }) => {
                 styles.actionButton,
                 { borderColor: action.color },
                 action.pressed && { backgroundColor: `${action.color}30` },
+                isProcessing && styles.actionButtonDisabled,
               ]}
               onPress={() => handleActionPress(action.id, 'main')}
+              disabled={isProcessing}
             >
-              <Text style={[styles.actionText, { color: action.color }]}>
+              <Text style={[
+                styles.actionText,
+                { color: action.color },
+                isProcessing && styles.actionTextDisabled,
+              ]}>
                 {action.label}
               </Text>
             </TouchableOpacity>
@@ -300,10 +362,18 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 24,
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   headerTitle: {
     color: '#ffffff',
     fontSize: 24,
     fontWeight: '600',
+  },
+  loadingIndicator: {
+    marginLeft: 8,
   },
   headerPlaceholder: {
     width: 40,
@@ -381,6 +451,12 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionTextDisabled: {
+    opacity: 0.5,
   },
   secondaryRightsBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
