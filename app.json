@@ -41,10 +41,6 @@
     ],
     "experiments": {
       "reactCompiler": true
-    },
-    "extra": {
-      "GEMINI_API_KEY": process.env.GEMINI_API_KEY,
-      "GEMINI_SYSTEM_PROMPT": process.env.GEMINI_SYSTEM_PROMPT || "Sen bir dayak simülasyon asistanısın. Kullanıcının fotoğrafına yapılan eyleme göre görsel değişiklikler uygula."
     }
   }
 }
