@@ -30,7 +30,7 @@ export const Colors = {
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
+    sans: 'System',
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
     /** iOS `UIFontDescriptorSystemDesignRounded` */
@@ -39,9 +39,9 @@ export const Fonts = Platform.select({
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
+    sans: 'sans-serif',
     serif: 'serif',
-    rounded: 'normal',
+    rounded: 'sans-serif',
     mono: 'monospace',
   },
   web: {
@@ -51,3 +51,13 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+// Inter font için global stil
+// iOS'ta 'System' = San Francisco (yerleşik), ama Inter fontunu kullanıyoruz
+// Android'de yüklenen Inter-Regular fontunu kullan
+export const defaultFontFamily = Platform.select({
+  ios: 'Inter-Regular', // iOS'ta Inter fontunu kullan
+  android: 'Inter-Regular', // Android'de yüklenen Inter fontunu kullan
+  default: 'Inter-Regular',
+  web: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+}) || 'Inter-Regular';

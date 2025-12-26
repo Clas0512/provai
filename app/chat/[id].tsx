@@ -3,11 +3,9 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
-  Text,
   Modal,
   Pressable,
-  TextInput,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   FlatList,
   ScrollView,
@@ -17,26 +15,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { router, useLocalSearchParams } from 'expo-router';
+import { GlobalText } from '@/components/global-text';
+import { GlobalTextInput } from '@/components/global-text-input';
 
 // Mesaj tipi tanımı
-const createMessage = (text, sender = 'user') => ({
+const createMessage = (text: string, sender: 'user' | 'assistant' = 'user') => ({
   id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
   text,
-  sender, // 'user' veya 'assistant'
+  sender,
   timestamp: new Date(),
 });
 
-const ChatScreen = ({ chatId, onBack }) => {
+export default function ChatScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [providerMenuVisible, setProviderMenuVisible] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedProvider, setSelectedProvider] = useState<any>(null);
   const [systemPromptVisible, setSystemPromptVisible] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState('Sen yardımcı bir AI asistanısın.');
-  const flatListRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
   
   // Aurora animasyonu için
   const auroraAnim = useRef(new Animated.Value(0)).current;
@@ -45,42 +47,62 @@ const ChatScreen = ({ chatId, onBack }) => {
   const { width, height } = Dimensions.get('window');
 
   useEffect(() => {
-    // Aurora animasyonunu başlat - CSS'teki @keyframes aurora gibi
-    // CSS: @keyframes aurora { 0%{background-position:50%,50%} to{background-position:350%,350%} }
-    // CSS: animation: aurora 20s ease-in-out infinite
-    // Döngüyü düzgün yapmak için 0 -> 1 -> 0 şeklinde (başlangıç ve bitiş aynı)
+    // Aurora animasyonunu başlat
     Animated.loop(
       Animated.sequence([
         Animated.timing(auroraAnim, {
           toValue: 1,
-          duration: 20000, // 20s
+          duration: 20000,
           useNativeDriver: true,
         }),
         Animated.timing(auroraAnim, {
           toValue: 0,
-          duration: 0, // Anında başa dön (CSS infinite gibi)
+          duration: 0,
           useNativeDriver: true,
         }),
       ])
     ).start();
 
-    // Shine animasyonunu başlat - CSS'teki @keyframes shine gibi
-    // CSS: @keyframes shine{0%{background-position:0 0}50%{background-position:100% 100%}to{background-position:0 0}}
-    // CSS: animation:shine var(--duration)infinite linear --duration: 14s
+    // Shine animasyonunu başlat
     Animated.loop(
       Animated.sequence([
         Animated.timing(shineAnim, {
           toValue: 1,
-          duration: 14000, // 14s
+          duration: 14000,
           useNativeDriver: true,
         }),
         Animated.timing(shineAnim, {
           toValue: 0,
-          duration: 0, // Anında başa dön
+          duration: 0,
           useNativeDriver: true,
         }),
       ])
     ).start();
+  }, []);
+
+  // Klavye dinleyicileri
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+        // Klavye açıldığında mesaj listesini en alta kaydır
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
   }, []);
 
   const menuOptions = [
@@ -101,16 +123,14 @@ const ChatScreen = ({ chatId, onBack }) => {
     if (message.trim()) {
       const newMessage = createMessage(message.trim(), 'user');
       setMessages((prevMessages) => [...prevMessages, newMessage]);
-      setMessage(''); // Input'u temizle
+      setMessage('');
       
-      // Yeni mesaj gönderildiğinde en alta scroll yap
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
   };
 
-  // Mesajlar değiştiğinde otomatik scroll
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -119,74 +139,49 @@ const ChatScreen = ({ chatId, onBack }) => {
     }
   }, [messages]);
 
-  const handleMenuSelect = (option) => {
+  const handleMenuSelect = (option: string) => {
     setSelectedOption(option);
     setMenuVisible(false);
-    console.log('Seçilen seçenek:', option);
   };
 
-  const handleProviderSelect = (provider) => {
+  const handleProviderSelect = (provider: any) => {
     setSelectedProvider(provider);
     setProviderMenuVisible(false);
-    console.log('Seçilen provider:', provider);
   };
 
   const handleSystemPromptSave = () => {
     setSystemPromptVisible(false);
-    console.log('System prompt kaydedildi:', systemPrompt);
   };
 
-  // Aurora gradient pozisyonları için interpolasyon - CSS'teki gibi
-  // Ekran içinde kalması için gradient boyutları ve hareket alanı sınırlandırılmalı
-  // Gradient boyutu: width * 1.3, height * 1.2 (ekran boyutuna yakın)
-  // Hareket: ±%10 (ekran içinde kalacak şekilde)
+  // Aurora transform animasyonu
   const auroraX = auroraAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [
-      -width * 0.15, // Başlangıç: sola hareket
-      width * 0.15,  // Orta: sağa hareket
-      -width * 0.15, // Bitiş: başlangıca dön
-    ],
+    outputRange: [-width * 0.15, width * 0.15, -width * 0.15],
     extrapolate: 'clamp',
   });
   
   const auroraY = auroraAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [
-      -height * 0.1, // Başlangıç: yukarı hareket
-      height * 0.1,  // Orta: aşağı hareket
-      -height * 0.1, // Bitiş: başlangıca dön
-    ],
+    outputRange: [-height * 0.1, height * 0.1, -height * 0.1],
     extrapolate: 'clamp',
   });
   
-  // After pseudo-element için - farklı bir hareket paterni (ters yönde)
   const auroraAfterX = auroraAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [
-      width * 0.1,  // Başlangıç: sağda
-      -width * 0.1, // Orta: solda (ters yönde)
-      width * 0.1,  // Bitiş: başlangıca dön
-    ],
+    outputRange: [width * 0.1, -width * 0.1, width * 0.1],
     extrapolate: 'clamp',
   });
   
   const auroraAfterY = auroraAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [
-      height * 0.08, // Başlangıç: aşağıda
-      -height * 0.08, // Orta: yukarıda (ters yönde)
-      height * 0.08, // Bitiş: başlangıca dön
-    ],
+    outputRange: [height * 0.08, -height * 0.08, height * 0.08],
     extrapolate: 'clamp',
   });
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Aurora Arka Plan Efekti - HTML'deki gibi */}
+      {/* Aurora Arka Plan Efekti */}
       <View style={styles.auroraContainer} pointerEvents="none">
-        {/* Ana Aurora Gradient - repeating-linear-gradient efekti */}
-        {/* Ekran içinde kalması için boyutlar küçültüldü */}
         <Animated.View
           style={[
             styles.auroraBackground,
@@ -202,25 +197,11 @@ const ChatScreen = ({ chatId, onBack }) => {
             },
           ]}
         >
-          {/* CSS: repeating-linear-gradient(100deg, #3b82f6 10%, #a5b4fc 15%, #93c5fd 20%, #ddd6fe 25%, #60a5fa 30%) */}
-          {/* Repeating gradient için renkleri tekrarlıyoruz */}
           <LinearGradient
             colors={[
-              '#3b82f6', // 10%
-              '#a5b4fc', // 15%
-              '#93c5fd', // 20%
-              '#ddd6fe', // 25%
-              '#60a5fa', // 30%
-              '#3b82f6', // tekrar başla
-              '#a5b4fc',
-              '#93c5fd',
-              '#ddd6fe',
-              '#60a5fa',
-              '#3b82f6', // tekrar
-              '#a5b4fc',
-              '#93c5fd',
-              '#ddd6fe',
-              '#60a5fa',
+              '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa',
+              '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa',
+              '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa',
             ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -228,8 +209,6 @@ const ChatScreen = ({ chatId, onBack }) => {
           />
         </Animated.View>
         
-        {/* İkinci katman - after pseudo-element efekti */}
-        {/* Ekran içinde kalması için boyutlar küçültüldü */}
         <Animated.View
           style={[
             styles.auroraAfter,
@@ -245,19 +224,10 @@ const ChatScreen = ({ chatId, onBack }) => {
             },
           ]}
         >
-          {/* After pseudo-element için aynı gradient */}
           <LinearGradient
             colors={[
-              '#3b82f6', // 10%
-              '#a5b4fc', // 15%
-              '#93c5fd', // 20%
-              '#ddd6fe', // 25%
-              '#60a5fa', // 30%
-              '#3b82f6', // tekrar
-              '#a5b4fc',
-              '#93c5fd',
-              '#ddd6fe',
-              '#60a5fa',
+              '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa',
+              '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa',
             ]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -265,51 +235,39 @@ const ChatScreen = ({ chatId, onBack }) => {
           />
         </Animated.View>
         
-        {/* Blur efekti */}
         <BlurView intensity={10} style={styles.auroraBlur} />
         
-        {/* Dark gradient overlay */}
         <LinearGradient
           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.auroraDarkGradient}
         />
-        
-        {/* Mask efekti - radial gradient */}
-        <LinearGradient
-          colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0)']}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.auroraMask}
-        />
       </View>
       
       {/* Üst Butonlar */}
       <View style={[styles.topButtonsContainer, styles.contentLayer]}>
-        {/* Sol Üst - Geri Dön Butonu */}
         <TouchableOpacity
-          onPress={onBack}
+          onPress={() => router.back()}
           style={styles.topButton}
         >
-          <Text style={styles.topButtonText}>←</Text>
+          <GlobalText style={styles.topButtonText}>←</GlobalText>
         </TouchableOpacity>
 
-        {/* Sağ Üst - AI Provider Butonu */}
         <View style={styles.topRightButtons}>
           <TouchableOpacity
             onPress={() => setSystemPromptVisible(true)}
             style={styles.topButton}
           >
-            <Text style={styles.topButtonText}>⚙️</Text>
+            <GlobalText style={styles.topButtonText}>⚙️</GlobalText>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setProviderMenuVisible(true)}
             style={styles.topButton}
           >
-            <Text style={styles.topButtonText}>
+            <GlobalText style={styles.topButtonText}>
               {selectedProvider ? selectedProvider.name : 'AI Provider'}
-            </Text>
+            </GlobalText>
           </TouchableOpacity>
         </View>
       </View>
@@ -333,35 +291,29 @@ const ChatScreen = ({ chatId, onBack }) => {
                 item.sender === 'user' ? styles.userBubble : styles.assistantBubble,
               ]}
             >
-              <Text
+              <GlobalText
                 style={[
                   styles.messageText,
                   item.sender === 'user' ? styles.userMessageText : styles.assistantMessageText,
                 ]}
               >
                 {item.text}
-              </Text>
+              </GlobalText>
             </View>
           </View>
         )}
         contentContainerStyle={styles.messagesList}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Henüz mesaj yok. İlk mesajınızı yazın!</Text>
+            <GlobalText style={styles.emptyText}>Henüz mesaj yok. İlk mesajınızı yazın!</GlobalText>
           </View>
         }
       />
 
-      {/* Chat Box - Alt kısımda sabit */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        style={styles.contentLayer}
-      >
-        <View style={styles.chatBoxContainer}>
+      {/* Chat Box */}
+      <View style={[styles.chatBoxContainer, styles.contentLayer, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 16 : 16 }]}>
           <View style={styles.inputWrapper}>
-            {/* Text Input */}
-            <TextInput
+            <GlobalTextInput
               placeholder="Type your message..."
               placeholderTextColor="#666666"
               value={message}
@@ -370,11 +322,8 @@ const ChatScreen = ({ chatId, onBack }) => {
               multiline
             />
             
-            {/* Alt Butonlar - Input içinde */}
             <View style={styles.inputButtonsContainer}>
-              {/* Select Agents Butonu (eski "+" butonu) */}
               <View style={styles.selectAgentsButtonWrapper}>
-                {/* Shine animasyon efekti - Border gibi */}
                 <Animated.View
                   style={[
                     styles.selectAgentsShineContainer,
@@ -417,15 +366,13 @@ const ChatScreen = ({ chatId, onBack }) => {
                     onPress={() => setMenuVisible(true)}
                     style={styles.selectAgentsButton}
                   >
-                    <Text style={styles.selectAgentsIcon}>🤖</Text>
-                    <Text style={styles.selectAgentsText}>Select agents</Text>
+                    <GlobalText style={styles.selectAgentsIcon}>🤖</GlobalText>
+                    <GlobalText style={styles.selectAgentsText}>Select agents</GlobalText>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Gönder Butonu */}
               <View style={styles.sendButtonWrapper}>
-                {/* Shine animasyon efekti - Border gibi */}
                 <Animated.View
                   style={[
                     styles.sendButtonShineContainer,
@@ -472,14 +419,13 @@ const ChatScreen = ({ chatId, onBack }) => {
                       !message.trim() && styles.sendButtonDisabled
                     ]}
                   >
-                    <Text style={styles.sendButtonIcon}>↑</Text>
+                    <GlobalText style={styles.sendButtonIcon}>↑</GlobalText>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Menu Modal */}
       <Modal
@@ -496,10 +442,10 @@ const ChatScreen = ({ chatId, onBack }) => {
             {menuOptions.map((option) => (
               <Pressable
                 key={option.value}
-                onPress={() => handleMenuSelect(option)}
+                onPress={() => handleMenuSelect(option.value)}
                 style={styles.menuItem}
               >
-                <Text style={styles.menuItemText}>{option.label}</Text>
+                <GlobalText style={styles.menuItemText}>{option.label}</GlobalText>
               </Pressable>
             ))}
           </View>
@@ -519,7 +465,7 @@ const ChatScreen = ({ chatId, onBack }) => {
         >
           <Pressable onPress={(e) => e.stopPropagation()}>
             <View style={styles.providerMenuContainer}>
-              <Text style={styles.providerMenuTitle}>AI Provider Seç</Text>
+              <GlobalText style={styles.providerMenuTitle}>AI Provider Seç</GlobalText>
               <ScrollView 
                 style={styles.providerMenuScrollView}
                 contentContainerStyle={styles.providerMenuScrollContent}
@@ -533,7 +479,7 @@ const ChatScreen = ({ chatId, onBack }) => {
                       selectedProvider?.id === provider.id && styles.providerMenuItemSelected
                     ]}
                   >
-                    <Text style={styles.providerMenuItemText}>{provider.name}</Text>
+                    <GlobalText style={styles.providerMenuItemText}>{provider.name}</GlobalText>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -549,59 +495,53 @@ const ChatScreen = ({ chatId, onBack }) => {
         animationType="fade"
         onRequestClose={() => setSystemPromptVisible(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <Pressable
           style={styles.systemPromptModalOverlay}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          onPress={() => setSystemPromptVisible(false)}
         >
-          <Pressable
-            style={styles.systemPromptModalOverlay}
-            onPress={() => setSystemPromptVisible(false)}
-          >
-            <Pressable onPress={(e) => e.stopPropagation()}>
-              <View style={styles.systemPromptContainer}>
-                <Text style={styles.systemPromptTitle}>System Prompt</Text>
-                <ScrollView 
-                  style={styles.systemPromptScrollView}
-                  contentContainerStyle={styles.systemPromptScrollContent}
-                  keyboardShouldPersistTaps="handled"
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.systemPromptContainer}>
+              <GlobalText style={styles.systemPromptTitle}>System Prompt</GlobalText>
+              <ScrollView 
+                style={styles.systemPromptScrollView}
+                contentContainerStyle={styles.systemPromptScrollContent}
+                keyboardShouldPersistTaps="handled"
+              >
+                <GlobalTextInput
+                  style={styles.systemPromptInput}
+                  value={systemPrompt}
+                  onChangeText={setSystemPrompt}
+                  multiline
+                  placeholder="System prompt'unuzu buraya yazın..."
+                  placeholderTextColor="#666666"
+                />
+              </ScrollView>
+              <View style={styles.systemPromptButtons}>
+                <TouchableOpacity
+                  onPress={() => setSystemPromptVisible(false)}
+                  style={[styles.systemPromptButton, styles.systemPromptButtonCancel]}
                 >
-                  <TextInput
-                    style={styles.systemPromptInput}
-                    value={systemPrompt}
-                    onChangeText={setSystemPrompt}
-                    multiline
-                    placeholder="System prompt'unuzu buraya yazın..."
-                    placeholderTextColor="#666666"
-                  />
-                </ScrollView>
-                <View style={styles.systemPromptButtons}>
-                  <TouchableOpacity
-                    onPress={() => setSystemPromptVisible(false)}
-                    style={[styles.systemPromptButton, styles.systemPromptButtonCancel]}
-                  >
-                    <Text style={styles.systemPromptButtonText}>İptal</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleSystemPromptSave}
-                    style={[styles.systemPromptButton, styles.systemPromptButtonSave]}
-                  >
-                    <Text style={styles.systemPromptButtonText}>Kaydet</Text>
-                  </TouchableOpacity>
-                </View>
+                  <GlobalText style={styles.systemPromptButtonText}>İptal</GlobalText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSystemPromptSave}
+                  style={[styles.systemPromptButton, styles.systemPromptButtonSave]}
+                >
+                  <GlobalText style={styles.systemPromptButtonText}>Kaydet</GlobalText>
+                </TouchableOpacity>
               </View>
-            </Pressable>
+            </View>
           </Pressable>
-        </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000', // Siyah arka plan
+    backgroundColor: '#000000',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -616,8 +556,7 @@ const styles = StyleSheet.create({
   },
   auroraBackground: {
     position: 'absolute',
-    opacity: 0.5, // CSS: opacity-50
-    // Transform ile merkeze hizalama yapılıyor
+    opacity: 0.5,
   },
   auroraGradient: {
     width: '100%',
@@ -625,8 +564,7 @@ const styles = StyleSheet.create({
   },
   auroraAfter: {
     position: 'absolute',
-    opacity: 0.5, // CSS: opacity-50
-    // Transform ile merkeze hizalama yapılıyor
+    opacity: 0.5,
   },
   auroraBlur: {
     position: 'absolute',
@@ -634,7 +572,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    // HTML: blur-[10px]
   },
   auroraDarkGradient: {
     position: 'absolute',
@@ -642,15 +579,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.5, // HTML: dark:opacity-50
-  },
-  auroraMask: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    // HTML: mask-image: radial-gradient(ellipse at 100% 0%, black 10%, transparent 70%)
+    opacity: 0.5,
   },
   contentLayer: {
     zIndex: 1,
@@ -710,11 +639,6 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
-    fontFamily: Platform.select({
-      ios: 'System', // San Francisco on iOS
-      android: 'Roboto',
-      default: 'System',
-    }),
   },
   userMessageText: {
     color: '#ffffff',
@@ -735,31 +659,25 @@ const styles = StyleSheet.create({
   },
   chatBoxContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 16,
+    paddingTop: 12,
   },
   inputWrapper: {
     position: 'relative',
     width: '100%',
-    maxWidth: 672, // max-w-2xl (~672px)
+    maxWidth: 672,
     alignSelf: 'center',
   },
   textInput: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Daha koyu transparan arka plan
-    borderRadius: 16, // rounded-xl
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(63, 63, 70, 0.8)', // dark:border-zinc-800
+    borderColor: 'rgba(63, 63, 70, 0.8)',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 50, // Alt butonlar için alan
+    paddingBottom: 50,
     minHeight: 80,
-    color: '#ffffff', // dark:text-white
+    color: '#ffffff',
     fontSize: 14,
-    fontFamily: Platform.select({
-      ios: 'System', // San Francisco on iOS
-      android: 'Roboto',
-      default: 'System',
-    }),
     textAlignVertical: 'top',
   },
   inputButtonsContainer: {
@@ -775,7 +693,7 @@ const styles = StyleSheet.create({
   selectAgentsButtonWrapper: {
     position: 'relative',
     borderRadius: 9999,
-    padding: 2, // border-width: 2px - CSS'teki padding: var(--border-width)
+    padding: 2,
     overflow: 'hidden',
   },
   selectAgentsShineContainer: {
@@ -794,7 +712,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
     borderRadius: 9999,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Gradient'i kapatmak için
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   selectAgentsButton: {
     flexDirection: 'row',
@@ -810,18 +728,13 @@ const styles = StyleSheet.create({
   selectAgentsText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '300', // font-light
-    letterSpacing: 0.5, // tracking-wide
-    fontFamily: Platform.select({
-      ios: 'System', // San Francisco on iOS
-      android: 'Roboto',
-      default: 'System',
-    }),
+    fontWeight: '300',
+    letterSpacing: 0.5,
   },
   sendButtonWrapper: {
     position: 'relative',
-    borderRadius: 20, // rounded-full (circular)
-    padding: 2, // border-width: 2px
+    borderRadius: 20,
+    padding: 2,
     overflow: 'hidden',
   },
   sendButtonShineContainer: {
@@ -840,7 +753,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 1,
     borderRadius: 20,
-    backgroundColor: '#a1a1aa', // Gradient'i kapatmak için
+    backgroundColor: '#a1a1aa',
   },
   sendButton: {
     width: 40,
@@ -996,6 +909,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
-export default ChatScreen;
 

@@ -3,28 +3,34 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
-  Text,
-  TextInput,
   FlatList,
   Animated,
   Dimensions,
+  Alert,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useAuth } from '@/contexts/AuthContext';
+import { router } from 'expo-router';
+import { GlobalText } from '@/components/global-text';
+import { GlobalTextInput } from '@/components/global-text-input';
 
 const { width, height } = Dimensions.get('window');
 
-const HomeScreen = ({ onChatSelect, onCreateChat }) => {
+export default function ChatListScreen() {
   const [newChatInput, setNewChatInput] = useState('');
   const [chats, setChats] = useState([
     { id: '1', title: 'Yeni Chat', lastMessage: 'Merhaba, nasılsın?', timestamp: new Date() },
     { id: '2', title: 'Proje Hakkında', lastMessage: 'React Native öğreniyorum', timestamp: new Date() },
     { id: '3', title: 'AI Asistan', lastMessage: 'Yardımcı olabilir miyim?', timestamp: new Date() },
   ]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
   const auroraAnim = useRef(new Animated.Value(0)).current;
+  const { user, logout } = useAuth();
 
   // Aurora animasyonu
   useEffect(() => {
@@ -47,6 +53,27 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
     animateAurora();
   }, []);
 
+  // Klavye dinleyicileri
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
+
   const handleCreateChat = () => {
     if (newChatInput.trim()) {
       const newChat = {
@@ -57,12 +84,25 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
       };
       setChats([newChat, ...chats]);
       setNewChatInput('');
-      onCreateChat(newChat.id);
+      // Chat sayfasına yönlendir
+      router.push(`/chat/${newChat.id}`);
     }
   };
 
-  const handleChatPress = (chatId) => {
-    onChatSelect(chatId);
+  const handleChatPress = (chatId: string) => {
+    // Chat sayfasına yönlendir
+    router.push(`/chat/${chatId}`);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Çıkış Yap',
+      'Çıkış yapmak istediğinize emin misiniz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        { text: 'Çıkış Yap', style: 'destructive', onPress: logout },
+      ]
+    );
   };
 
   // Scroll animasyonu için
@@ -71,25 +111,18 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
     { useNativeDriver: false }
   );
 
-  // Fade-out efekti için interpolate
-  const opacity = scrollY.interpolate({
-    inputRange: [0, 200, 400],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-
-  const renderChatItem = ({ item, index }) => {
+  const renderChatItem = ({ item }: { item: any }) => {
     return (
       <TouchableOpacity
         style={styles.chatItem}
         onPress={() => handleChatPress(item.id)}
       >
         <View style={styles.chatItemContent}>
-          <Text style={styles.chatItemTitle}>{item.title}</Text>
+          <GlobalText style={styles.chatItemTitle}>{item.title}</GlobalText>
           {item.lastMessage ? (
-            <Text style={styles.chatItemMessage} numberOfLines={1}>
+            <GlobalText style={styles.chatItemMessage} numberOfLines={1}>
               {item.lastMessage}
-            </Text>
+            </GlobalText>
           ) : null}
         </View>
       </TouchableOpacity>
@@ -97,19 +130,18 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
   };
 
   // Aurora transform animasyonu
-  // Aurora animasyonu - ekran içinde sınırlı hareket
   const auroraTranslateX = auroraAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-width * 0.2, width * 0.2], // Ekran içinde sınırlı
+    outputRange: [-width * 0.2, width * 0.2],
   });
 
   const auroraTranslateY = auroraAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-height * 0.15, height * 0.15], // Ekran içinde sınırlı
+    outputRange: [-height * 0.15, height * 0.15],
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Arka Plan Base */}
       <View style={styles.backgroundBase} />
       
@@ -128,37 +160,57 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
             ],
           }}
         >
-        <LinearGradient
-          colors={['#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa', '#3b82f6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-          style={styles.auroraGradient1}
-        />
-        <LinearGradient
-          colors={['#60a5fa', '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa']}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-          style={styles.auroraGradient2}
-        />
-        <LinearGradient
-          colors={['#93c5fd', '#ddd6fe', '#60a5fa', '#3b82f6', '#a5b4fc', '#93c5fd']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-          style={styles.auroraGradient3}
-        />
+          <LinearGradient
+            colors={['#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa', '#3b82f6']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+            style={styles.auroraGradient1}
+          />
+          <LinearGradient
+            colors={['#60a5fa', '#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa']}
+            start={{ x: 1, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+            style={styles.auroraGradient2}
+          />
+          <LinearGradient
+            colors={['#93c5fd', '#ddd6fe', '#60a5fa', '#3b82f6', '#a5b4fc', '#93c5fd']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
+            style={styles.auroraGradient3}
+          />
         </Animated.View>
       </View>
       
       {/* Blur Overlay */}
       <BlurView intensity={20} style={styles.blurOverlay} />
-      
-      {/* Üst Input Alanı - Ekranın Ortasında */}
-      <View style={styles.inputContainer}>
+
+      {/* Üst Header - Kullanıcı bilgisi ve çıkış */}
+      <View style={styles.header}>
+        <GlobalText style={styles.headerText}>Merhaba, {user?.name || user?.email}</GlobalText>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <GlobalText style={styles.logoutText}>Çıkış</GlobalText>
+        </TouchableOpacity>
+      </View>
+
+      {/* Chat Listesi */}
+      <FlatList
+        data={chats}
+        keyExtractor={(item) => item.id}
+        renderItem={renderChatItem}
+        contentContainerStyle={styles.listContent}
+        style={styles.listContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* Input Alanı - Sayfanın Altında */}
+      <View style={[styles.inputContainer, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 16 : 16 }]}>
         <View style={styles.inputWrapper}>
-          <TextInput
+          <GlobalTextInput
             style={styles.chatInput}
             placeholder="Yeni chat başlat..."
             placeholderTextColor="#666666"
@@ -174,36 +226,18 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
               !newChatInput.trim() && styles.createButtonDisabled
             ]}
           >
-            <Text style={[
+            <GlobalText style={[
               styles.createButtonText,
               !newChatInput.trim() && styles.createButtonTextDisabled
             ]}>
               Başlat
-            </Text>
+            </GlobalText>
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Chat Listesi - Ortadan Aşağıya */}
-      <Animated.FlatList
-        data={chats}
-        keyExtractor={(item) => item.id}
-        renderItem={renderChatItem}
-        contentContainerStyle={styles.listContent}
-        style={styles.listContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={<View style={styles.listHeader} />}
-      />
-
-      {/* Fade-out Gradient - Alt Kısım */}
-      <Animated.View style={[styles.fadeGradient, { opacity: opacity }]} pointerEvents="none">
-        <View style={styles.gradient} />
-      </Animated.View>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -263,14 +297,67 @@ const styles = StyleSheet.create({
     bottom: 0,
     opacity: 0.3,
   },
-  inputContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    right: 0,
-    transform: [{ translateY: -30 }], // Input yüksekliğinin yarısı kadar yukarı
-    zIndex: 20,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+    zIndex: 20,
+  },
+  headerText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  listContainer: {
+    flex: 1,
+    zIndex: 10,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 100,
+  },
+  chatItem: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  chatItemContent: {
+    flex: 1,
+  },
+  chatItemTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  chatItemMessage: {
+    color: '#999999',
+    fontSize: 14,
+  },
+  inputContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: '#000000',
+    borderTopWidth: 1,
+    borderTopColor: '#2a2a2a',
+    zIndex: 20,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -308,54 +395,5 @@ const styles = StyleSheet.create({
   createButtonTextDisabled: {
     color: '#666666',
   },
-  listContainer: {
-    flex: 1,
-    paddingTop: '55%', // Input alanının altından başlasın
-    zIndex: 10,
-  },
-  listHeader: {
-    height: 0,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-  },
-  chatItem: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
-  },
-  chatItemContent: {
-    flex: 1,
-  },
-  chatItemTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  chatItemMessage: {
-    color: '#999999',
-    fontSize: 14,
-  },
-  fadeGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 150,
-    zIndex: 15,
-    backgroundColor: 'transparent',
-  },
-  gradient: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    opacity: 0.8,
-  },
 });
-
-export default HomeScreen;
 
