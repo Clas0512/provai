@@ -11,8 +11,12 @@ import {
   Platform,
   FlatList,
   ScrollView,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 // Mesaj tipi tanımı
 const createMessage = (text, sender = 'user') => ({
@@ -32,6 +36,31 @@ const ChatScreen = ({ chatId, onBack }) => {
   const [systemPromptVisible, setSystemPromptVisible] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState('Sen yardımcı bir AI asistanısın.');
   const flatListRef = useRef(null);
+  
+  // Aurora animasyonu için
+  const auroraAnim = useRef(new Animated.Value(0)).current;
+  const { width, height } = Dimensions.get('window');
+
+  useEffect(() => {
+    // Aurora animasyonunu başlat - CSS'teki @keyframes aurora gibi
+    // CSS: @keyframes aurora { 0%{background-position:50%,50%} to{background-position:350%,350%} }
+    // CSS: animation: aurora 20s ease-in-out infinite
+    // Döngüyü düzgün yapmak için 0 -> 1 -> 0 şeklinde (başlangıç ve bitiş aynı)
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(auroraAnim, {
+          toValue: 1,
+          duration: 20000, // 20s
+          useNativeDriver: true,
+        }),
+        Animated.timing(auroraAnim, {
+          toValue: 0,
+          duration: 0, // Anında başa dön (CSS infinite gibi)
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const menuOptions = [
     { label: 'Resim Ekle', value: 'image' },
@@ -86,10 +115,157 @@ const ChatScreen = ({ chatId, onBack }) => {
     console.log('System prompt kaydedildi:', systemPrompt);
   };
 
+  // Aurora gradient pozisyonları için interpolasyon - CSS'teki gibi
+  // Ekran içinde kalması için gradient boyutları ve hareket alanı sınırlandırılmalı
+  // Gradient boyutu: width * 1.3, height * 1.2 (ekran boyutuna yakın)
+  // Hareket: ±%10 (ekran içinde kalacak şekilde)
+  const auroraX = auroraAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      -width * 0.15, // Başlangıç: sola hareket
+      width * 0.15,  // Orta: sağa hareket
+      -width * 0.15, // Bitiş: başlangıca dön
+    ],
+    extrapolate: 'clamp',
+  });
+  
+  const auroraY = auroraAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      -height * 0.1, // Başlangıç: yukarı hareket
+      height * 0.1,  // Orta: aşağı hareket
+      -height * 0.1, // Bitiş: başlangıca dön
+    ],
+    extrapolate: 'clamp',
+  });
+  
+  // After pseudo-element için - farklı bir hareket paterni (ters yönde)
+  const auroraAfterX = auroraAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      width * 0.1,  // Başlangıç: sağda
+      -width * 0.1, // Orta: solda (ters yönde)
+      width * 0.1,  // Bitiş: başlangıca dön
+    ],
+    extrapolate: 'clamp',
+  });
+  
+  const auroraAfterY = auroraAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [
+      height * 0.08, // Başlangıç: aşağıda
+      -height * 0.08, // Orta: yukarıda (ters yönde)
+      height * 0.08, // Bitiş: başlangıca dön
+    ],
+    extrapolate: 'clamp',
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Aurora Arka Plan Efekti - HTML'deki gibi */}
+      <View style={styles.auroraContainer} pointerEvents="none">
+        {/* Ana Aurora Gradient - repeating-linear-gradient efekti */}
+        {/* Ekran içinde kalması için boyutlar küçültüldü */}
+        <Animated.View
+          style={[
+            styles.auroraBackground,
+            {
+              width: width * 1.3,
+              height: height * 1.2,
+              left: -width * 0.15,
+              top: -height * 0.1,
+              transform: [
+                { translateX: auroraX },
+                { translateY: auroraY },
+              ],
+            },
+          ]}
+        >
+          {/* CSS: repeating-linear-gradient(100deg, #3b82f6 10%, #a5b4fc 15%, #93c5fd 20%, #ddd6fe 25%, #60a5fa 30%) */}
+          {/* Repeating gradient için renkleri tekrarlıyoruz */}
+          <LinearGradient
+            colors={[
+              '#3b82f6', // 10%
+              '#a5b4fc', // 15%
+              '#93c5fd', // 20%
+              '#ddd6fe', // 25%
+              '#60a5fa', // 30%
+              '#3b82f6', // tekrar başla
+              '#a5b4fc',
+              '#93c5fd',
+              '#ddd6fe',
+              '#60a5fa',
+              '#3b82f6', // tekrar
+              '#a5b4fc',
+              '#93c5fd',
+              '#ddd6fe',
+              '#60a5fa',
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.auroraGradient}
+          />
+        </Animated.View>
+        
+        {/* İkinci katman - after pseudo-element efekti */}
+        {/* Ekran içinde kalması için boyutlar küçültüldü */}
+        <Animated.View
+          style={[
+            styles.auroraAfter,
+            {
+              width: width * 1.2,
+              height: height * 1.1,
+              left: -width * 0.1,
+              top: -height * 0.05,
+              transform: [
+                { translateX: auroraAfterX },
+                { translateY: auroraAfterY },
+              ],
+            },
+          ]}
+        >
+          {/* After pseudo-element için aynı gradient */}
+          <LinearGradient
+            colors={[
+              '#3b82f6', // 10%
+              '#a5b4fc', // 15%
+              '#93c5fd', // 20%
+              '#ddd6fe', // 25%
+              '#60a5fa', // 30%
+              '#3b82f6', // tekrar
+              '#a5b4fc',
+              '#93c5fd',
+              '#ddd6fe',
+              '#60a5fa',
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.auroraGradient}
+          />
+        </Animated.View>
+        
+        {/* Blur efekti */}
+        <BlurView intensity={10} style={styles.auroraBlur} />
+        
+        {/* Dark gradient overlay */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.auroraDarkGradient}
+        />
+        
+        {/* Mask efekti - radial gradient */}
+        <LinearGradient
+          colors={['rgba(0,0,0,1)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0)']}
+          start={{ x: 1, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.auroraMask}
+        />
+      </View>
+      
       {/* Üst Butonlar */}
-      <View style={styles.topButtonsContainer}>
+      <View style={[styles.topButtonsContainer, styles.contentLayer]}>
         {/* Sol Üst - Geri Dön Butonu */}
         <TouchableOpacity
           onPress={onBack}
@@ -121,6 +297,7 @@ const ChatScreen = ({ chatId, onBack }) => {
       <FlatList
         ref={flatListRef}
         data={messages}
+        style={styles.contentLayer}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View
@@ -158,6 +335,7 @@ const ChatScreen = ({ chatId, onBack }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        style={styles.contentLayer}
       >
         <View style={styles.chatBoxContainer}>
         <View style={styles.inputRow}>
@@ -319,7 +497,60 @@ const ChatScreen = ({ chatId, onBack }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a', // Koyu gri arka plan
+    backgroundColor: '#000000', // Siyah arka plan
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  auroraContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+    overflow: 'hidden',
+  },
+  auroraBackground: {
+    position: 'absolute',
+    opacity: 0.5, // CSS: opacity-50
+    // Transform ile merkeze hizalama yapılıyor
+  },
+  auroraGradient: {
+    width: '100%',
+    height: '100%',
+  },
+  auroraAfter: {
+    position: 'absolute',
+    opacity: 0.5, // CSS: opacity-50
+    // Transform ile merkeze hizalama yapılıyor
+  },
+  auroraBlur: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // HTML: blur-[10px]
+  },
+  auroraDarkGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.5, // HTML: dark:opacity-50
+  },
+  auroraMask: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    // HTML: mask-image: radial-gradient(ellipse at 100% 0%, black 10%, transparent 70%)
+  },
+  contentLayer: {
+    zIndex: 1,
+    position: 'relative',
   },
   topButtonsContainer: {
     flexDirection: 'row',
@@ -396,9 +627,9 @@ const styles = StyleSheet.create({
   chatBoxContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(26, 26, 26, 0.7)',
     borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
+    borderTopColor: 'rgba(42, 42, 42, 0.5)',
     borderTopLeftRadius: 48, // Üst sol köşe - daha yumuşak
     borderTopRightRadius: 48, // Üst sağ köşe - daha yumuşak
   },

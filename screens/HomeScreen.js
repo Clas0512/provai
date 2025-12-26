@@ -97,14 +97,15 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
   };
 
   // Aurora transform animasyonu
+  // Aurora animasyonu - ekran içinde sınırlı hareket
   const auroraTranslateX = auroraAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 100],
+    outputRange: [-width * 0.2, width * 0.2], // Ekran içinde sınırlı
   });
 
   const auroraTranslateY = auroraAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 50],
+    outputRange: [-height * 0.15, height * 0.15], // Ekran içinde sınırlı
   });
 
   return (
@@ -113,18 +114,20 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
       <View style={styles.backgroundBase} />
       
       {/* Aurora Gradient Efektleri */}
-      <Animated.View
-        style={[
-          styles.auroraContainer,
-          {
+      <View style={styles.auroraContainer} pointerEvents="none">
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             transform: [
               { translateX: auroraTranslateX },
               { translateY: auroraTranslateY },
             ],
-          },
-        ]}
-        pointerEvents="none"
-      >
+          }}
+        >
         <LinearGradient
           colors={['#3b82f6', '#a5b4fc', '#93c5fd', '#ddd6fe', '#60a5fa', '#3b82f6']}
           start={{ x: 0, y: 0 }}
@@ -146,7 +149,8 @@ const HomeScreen = ({ onChatSelect, onCreateChat }) => {
           locations={[0, 0.2, 0.4, 0.6, 0.8, 1]}
           style={styles.auroraGradient3}
         />
-      </Animated.View>
+        </Animated.View>
+      </View>
       
       {/* Blur Overlay */}
       <BlurView intensity={20} style={styles.blurOverlay} />
@@ -217,27 +221,28 @@ const styles = StyleSheet.create({
   },
   auroraContainer: {
     position: 'absolute',
-    top: -100,
-    left: -100,
-    right: -100,
-    bottom: -100,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0.5,
+    overflow: 'hidden',
   },
   auroraGradient1: {
     position: 'absolute',
     top: '10%',
     left: '0%',
-    width: width * 1.5,
-    height: height * 1.5,
+    width: width * 1.2,
+    height: height * 1.2,
     opacity: 0.4,
     transform: [{ rotate: '100deg' }],
   },
   auroraGradient2: {
     position: 'absolute',
     top: '30%',
-    right: '-20%',
-    width: width * 1.3,
-    height: height * 1.3,
+    right: '0%',
+    width: width * 1.1,
+    height: height * 1.1,
     opacity: 0.3,
     transform: [{ rotate: '-80deg' }],
   },
@@ -245,8 +250,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: '20%',
     left: '10%',
-    width: width * 1.2,
-    height: height * 1.2,
+    width: width * 1.0,
+    height: height * 1.0,
     opacity: 0.35,
     transform: [{ rotate: '45deg' }],
   },
