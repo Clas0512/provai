@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 // Mesaj tipi tanımı
 const createMessage = (text, sender = 'user') => ({
@@ -39,6 +40,8 @@ const ChatScreen = ({ chatId, onBack }) => {
   
   // Aurora animasyonu için
   const auroraAnim = useRef(new Animated.Value(0)).current;
+  // Shine animasyonu için
+  const shineAnim = useRef(new Animated.Value(0)).current;
   const { width, height } = Dimensions.get('window');
 
   useEffect(() => {
@@ -56,6 +59,24 @@ const ChatScreen = ({ chatId, onBack }) => {
         Animated.timing(auroraAnim, {
           toValue: 0,
           duration: 0, // Anında başa dön (CSS infinite gibi)
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Shine animasyonunu başlat - CSS'teki @keyframes shine gibi
+    // CSS: @keyframes shine{0%{background-position:0 0}50%{background-position:100% 100%}to{background-position:0 0}}
+    // CSS: animation:shine var(--duration)infinite linear --duration: 14s
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shineAnim, {
+          toValue: 1,
+          duration: 14000, // 14s
+          useNativeDriver: true,
+        }),
+        Animated.timing(shineAnim, {
+          toValue: 0,
+          duration: 0, // Anında başa dön
           useNativeDriver: true,
         }),
       ])
@@ -338,43 +359,126 @@ const ChatScreen = ({ chatId, onBack }) => {
         style={styles.contentLayer}
       >
         <View style={styles.chatBoxContainer}>
-        <View style={styles.inputRow}>
-          {/* "+" Butonu */}
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            style={styles.addButton}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            {/* Text Input */}
+            <TextInput
+              placeholder="Type your message..."
+              placeholderTextColor="#666666"
+              value={message}
+              onChangeText={setMessage}
+              style={styles.textInput}
+              multiline
+            />
+            
+            {/* Alt Butonlar - Input içinde */}
+            <View style={styles.inputButtonsContainer}>
+              {/* Select Agents Butonu (eski "+" butonu) */}
+              <View style={styles.selectAgentsButtonWrapper}>
+                {/* Shine animasyon efekti - Border gibi */}
+                <Animated.View
+                  style={[
+                    styles.selectAgentsShineContainer,
+                    {
+                      transform: [
+                        {
+                          translateX: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                        {
+                          translateY: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      'transparent',
+                      'transparent',
+                      'rgba(160, 124, 254, 1)',
+                      'rgba(254, 143, 181, 1)',
+                      'rgba(255, 190, 123, 1)',
+                      'transparent',
+                      'transparent',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.selectAgentsShineGradient}
+                  />
+                </Animated.View>
+                
+                <View style={styles.selectAgentsButtonContainer}>
+                  <TouchableOpacity
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.selectAgentsButton}
+                  >
+                    <Text style={styles.selectAgentsIcon}>🤖</Text>
+                    <Text style={styles.selectAgentsText}>Select agents</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-          {/* Text Input */}
-          <TextInput
-            placeholder="Mesaj yazın..."
-            placeholderTextColor="#666666"
-            value={message}
-            onChangeText={setMessage}
-            style={styles.textInput}
-            multiline
-          />
-
-          {/* Submit Butonu */}
-          <TouchableOpacity
-            onPress={handleSend}
-            disabled={!message.trim()}
-            style={[
-              styles.sendButton,
-              !message.trim() && styles.sendButtonDisabled
-            ]}
-          >
-            <Text style={[
-              styles.sendButtonText,
-              !message.trim() && styles.sendButtonTextDisabled
-            ]}>
-              Gönder
-            </Text>
-          </TouchableOpacity>
+              {/* Gönder Butonu */}
+              <View style={styles.sendButtonWrapper}>
+                {/* Shine animasyon efekti - Border gibi */}
+                <Animated.View
+                  style={[
+                    styles.sendButtonShineContainer,
+                    {
+                      transform: [
+                        {
+                          translateX: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                        {
+                          translateY: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      'transparent',
+                      'transparent',
+                      'rgba(160, 124, 254, 1)',
+                      'rgba(254, 143, 181, 1)',
+                      'rgba(255, 190, 123, 1)',
+                      'transparent',
+                      'transparent',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.sendButtonShineGradient}
+                  />
+                </Animated.View>
+                
+                <View style={styles.sendButtonContainer}>
+                  <TouchableOpacity
+                    onPress={handleSend}
+                    disabled={!message.trim()}
+                    style={[
+                      styles.sendButton,
+                      !message.trim() && styles.sendButtonDisabled
+                    ]}
+                  >
+                    <Text style={styles.sendButtonIcon}>↑</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
       </KeyboardAvoidingView>
 
       {/* Menu Modal */}
@@ -606,6 +710,11 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
   },
   userMessageText: {
     color: '#ffffff',
@@ -626,62 +735,127 @@ const styles = StyleSheet.create({
   },
   chatBoxContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(26, 26, 26, 0.7)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(42, 42, 42, 0.5)',
-    borderTopLeftRadius: 48, // Üst sol köşe - daha yumuşak
-    borderTopRightRadius: 48, // Üst sağ köşe - daha yumuşak
+    paddingVertical: 12,
+    paddingBottom: 16,
   },
-  inputRow: {
+  inputWrapper: {
+    position: 'relative',
+    width: '100%',
+    maxWidth: 672, // max-w-2xl (~672px)
+    alignSelf: 'center',
+  },
+  textInput: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Daha koyu transparan arka plan
+    borderRadius: 16, // rounded-xl
+    borderWidth: 1,
+    borderColor: 'rgba(63, 63, 70, 0.8)', // dark:border-zinc-800
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 50, // Alt butonlar için alan
+    minHeight: 80,
+    color: '#ffffff', // dark:text-white
+    fontSize: 14,
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
+    textAlignVertical: 'top',
+  },
+  inputButtonsContainer: {
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
+    width: '100%',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-end',
-    gap: 4,
+    padding: 12,
   },
-  addButton: {
+  selectAgentsButtonWrapper: {
+    position: 'relative',
+    borderRadius: 9999,
+    padding: 2, // border-width: 2px - CSS'teki padding: var(--border-width)
+    overflow: 'hidden',
+  },
+  selectAgentsShineContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  selectAgentsShineGradient: {
+    width: 400,
+    height: 400,
+  },
+  selectAgentsButtonContainer: {
+    position: 'relative',
+    zIndex: 1,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Gradient'i kapatmak için
+  },
+  selectAgentsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 9999,
+  },
+  selectAgentsIcon: {
+    fontSize: 16,
+  },
+  selectAgentsText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '300', // font-light
+    letterSpacing: 0.5, // tracking-wide
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
+  },
+  sendButtonWrapper: {
+    position: 'relative',
+    borderRadius: 20, // rounded-full (circular)
+    padding: 2, // border-width: 2px
+    overflow: 'hidden',
+  },
+  sendButtonShineContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  sendButtonShineGradient: {
+    width: 300,
+    height: 300,
+  },
+  sendButtonContainer: {
+    position: 'relative',
+    zIndex: 1,
+    borderRadius: 20,
+    backgroundColor: '#a1a1aa', // Gradient'i kapatmak için
+  },
+  sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2a2a2a',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    maxHeight: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    color: '#ffffff',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#3a3a3a',
-  },
-  sendButton: {
-    minWidth: 60,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2a2a2a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 12,
   },
   sendButtonDisabled: {
     opacity: 0.5,
   },
-  sendButtonText: {
+  sendButtonIcon: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  sendButtonTextDisabled: {
-    color: '#666666',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
