@@ -10,6 +10,7 @@ const App = () => {
   const [currentScreen, setCurrentScreen] = useState('home'); // 'home', 'chat', 'photoGallery', 'photoDetail'
   const [currentChatId, setCurrentChatId] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [updatePhotoPercentage, setUpdatePhotoPercentage] = useState(null);
 
   const handleChatSelect = (chatId) => {
     setCurrentChatId(chatId);
@@ -31,8 +32,9 @@ const App = () => {
     setCurrentScreen('photoGallery');
   };
 
-  const handlePhotoSelect = (photo) => {
+  const handlePhotoSelect = (photo, updatePercentageFn) => {
     setSelectedPhoto(photo);
+    setUpdatePhotoPercentage(() => updatePercentageFn);
     setCurrentScreen('photoDetail');
   };
 
@@ -62,6 +64,7 @@ const App = () => {
       ) : currentScreen === 'photoDetail' ? (
         <PhotoDetailScreen
           photo={selectedPhoto}
+          updatePhotoPercentage={updatePhotoPercentage}
           onBack={handleBackToGallery}
         />
       ) : null}
