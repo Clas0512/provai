@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 // Mesaj tipi tanımı
 const createMessage = (text, sender = 'user') => ({
@@ -39,6 +40,8 @@ const ChatScreen = ({ chatId, onBack }) => {
   
   // Aurora animasyonu için
   const auroraAnim = useRef(new Animated.Value(0)).current;
+  // Shine animasyonu için
+  const shineAnim = useRef(new Animated.Value(0)).current;
   const { width, height } = Dimensions.get('window');
 
   useEffect(() => {
@@ -56,6 +59,24 @@ const ChatScreen = ({ chatId, onBack }) => {
         Animated.timing(auroraAnim, {
           toValue: 0,
           duration: 0, // Anında başa dön (CSS infinite gibi)
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Shine animasyonunu başlat - CSS'teki @keyframes shine gibi
+    // CSS: @keyframes shine{0%{background-position:0 0}50%{background-position:100% 100%}to{background-position:0 0}}
+    // CSS: animation:shine var(--duration)infinite linear --duration: 14s
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shineAnim, {
+          toValue: 1,
+          duration: 14000, // 14s
+          useNativeDriver: true,
+        }),
+        Animated.timing(shineAnim, {
+          toValue: 0,
+          duration: 0, // Anında başa dön
           useNativeDriver: true,
         }),
       ])
@@ -352,28 +373,109 @@ const ChatScreen = ({ chatId, onBack }) => {
             {/* Alt Butonlar - Input içinde */}
             <View style={styles.inputButtonsContainer}>
               {/* Select Agents Butonu (eski "+" butonu) */}
-              <TouchableOpacity
-                onPress={() => setMenuVisible(true)}
-                style={styles.selectAgentsButton}
-              >
-                <View style={styles.selectAgentsButtonInner}>
-                  <View style={styles.selectAgentsShine} />
-                  <Text style={styles.selectAgentsIcon}>🤖</Text>
-                  <Text style={styles.selectAgentsText}>Select agents</Text>
+              <View style={styles.selectAgentsButtonWrapper}>
+                {/* Shine animasyon efekti - Border gibi */}
+                <Animated.View
+                  style={[
+                    styles.selectAgentsShineContainer,
+                    {
+                      transform: [
+                        {
+                          translateX: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                        {
+                          translateY: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      'transparent',
+                      'transparent',
+                      'rgba(160, 124, 254, 1)',
+                      'rgba(254, 143, 181, 1)',
+                      'rgba(255, 190, 123, 1)',
+                      'transparent',
+                      'transparent',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.selectAgentsShineGradient}
+                  />
+                </Animated.View>
+                
+                <View style={styles.selectAgentsButtonContainer}>
+                  <TouchableOpacity
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.selectAgentsButton}
+                  >
+                    <Text style={styles.selectAgentsIcon}>🤖</Text>
+                    <Text style={styles.selectAgentsText}>Select agents</Text>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
 
               {/* Gönder Butonu */}
-              <TouchableOpacity
-                onPress={handleSend}
-                disabled={!message.trim()}
-                style={[
-                  styles.sendButton,
-                  !message.trim() && styles.sendButtonDisabled
-                ]}
-              >
-                <Text style={styles.sendButtonIcon}>↑</Text>
-              </TouchableOpacity>
+              <View style={styles.sendButtonWrapper}>
+                {/* Shine animasyon efekti - Border gibi */}
+                <Animated.View
+                  style={[
+                    styles.sendButtonShineContainer,
+                    {
+                      transform: [
+                        {
+                          translateX: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                        {
+                          translateY: shineAnim.interpolate({
+                            inputRange: [0, 0.5, 1],
+                            outputRange: [-200, 100, -200],
+                          }),
+                        },
+                      ],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[
+                      'transparent',
+                      'transparent',
+                      'rgba(160, 124, 254, 1)',
+                      'rgba(254, 143, 181, 1)',
+                      'rgba(255, 190, 123, 1)',
+                      'transparent',
+                      'transparent',
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.sendButtonShineGradient}
+                  />
+                </Animated.View>
+                
+                <View style={styles.sendButtonContainer}>
+                  <TouchableOpacity
+                    onPress={handleSend}
+                    disabled={!message.trim()}
+                    style={[
+                      styles.sendButton,
+                      !message.trim() && styles.sendButtonDisabled
+                    ]}
+                  >
+                    <Text style={styles.sendButtonIcon}>↑</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -608,6 +710,11 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 20,
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
   },
   userMessageText: {
     color: '#ffffff',
@@ -638,7 +745,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // bg-white/80 dark mode için
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Daha koyu transparan arka plan
     borderRadius: 16, // rounded-xl
     borderWidth: 1,
     borderColor: 'rgba(63, 63, 70, 0.8)', // dark:border-zinc-800
@@ -648,6 +755,11 @@ const styles = StyleSheet.create({
     minHeight: 80,
     color: '#ffffff', // dark:text-white
     fontSize: 14,
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
     textAlignVertical: 'top',
   },
   inputButtonsContainer: {
@@ -660,31 +772,37 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     padding: 12,
   },
-  selectAgentsButton: {
+  selectAgentsButtonWrapper: {
     position: 'relative',
-    borderRadius: 9999, // rounded-full
-    backgroundColor: '#000000', // bg-black
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    opacity: 0.7, // dark:opacity-70
+    borderRadius: 9999,
+    padding: 2, // border-width: 2px - CSS'teki padding: var(--border-width)
+    overflow: 'hidden',
   },
-  selectAgentsButtonInner: {
+  selectAgentsShineContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  selectAgentsShineGradient: {
+    width: 400,
+    height: 400,
+  },
+  selectAgentsButtonContainer: {
+    position: 'relative',
+    zIndex: 1,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Gradient'i kapatmak için
+  },
+  selectAgentsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    position: 'relative',
-    zIndex: 1,
-  },
-  selectAgentsShine: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 9999,
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: 'rgba(160, 124, 254, 0.3)',
   },
   selectAgentsIcon: {
     fontSize: 16,
@@ -694,19 +812,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '300', // font-light
     letterSpacing: 0.5, // tracking-wide
+    fontFamily: Platform.select({
+      ios: 'System', // San Francisco on iOS
+      android: 'Roboto',
+      default: 'System',
+    }),
+  },
+  sendButtonWrapper: {
+    position: 'relative',
+    borderRadius: 20, // rounded-full (circular)
+    padding: 2, // border-width: 2px
+    overflow: 'hidden',
+  },
+  sendButtonShineContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  sendButtonShineGradient: {
+    width: 300,
+    height: 300,
+  },
+  sendButtonContainer: {
+    position: 'relative',
+    zIndex: 1,
+    borderRadius: 20,
+    backgroundColor: '#a1a1aa', // Gradient'i kapatmak için
   },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#a1a1aa', // bg-zinc-400
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   sendButtonDisabled: {
     opacity: 0.5,
